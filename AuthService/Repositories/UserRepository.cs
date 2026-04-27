@@ -32,4 +32,35 @@ public class UserRepository(IDbConnection db) : IUserRepository
                     WHERE Id = @Id";
         return db.ExecuteAsync(sql, new { RefreshToken = refreshToken, RefreshTokenExpiryTime = expiryTime, Id = userId });
     }
+
+    public Task<IEnumerable<User>> GetAllUsersAsync()
+    {
+        var sql = "SELECT Id, Email, Role, CreatedAt FROM Users";
+        return db.QueryAsync<User>(sql);
+    }
+
+    public Task<User?> GetByIdAsync(int id)
+    {
+        var sql = "SELECT Id, Email, Role, CreatedAt FROM Users WHERE Id = @Id LIMIT 1";
+        return db.QueryFirstOrDefaultAsync<User>(sql, new { Id = id });
+    }
+
+    public Task DeleteUserAsync(int id)
+    {
+        var sql = "DELETE FROM Users WHERE Id = @Id";
+        return db.ExecuteAsync(sql, new { Id = id });
+    }
+
+    public Task UpdateUserAsync(int id, string email, string role)
+    {
+        var sql = "UPDATE Users SET Email = @Email, Role = @Role WHERE Id = @Id";
+        return db.ExecuteAsync(sql, new { Email = email, Role = role, Id = id });
+    }
+
+    public Task AdminCreateUserAsync(string email, string passwordHash, string role, DateTime createdAt)
+    {
+        var sql = @"INSERT INTO Users (Email, PasswordHash, Role, CreatedAt)
+                VALUES (@Email, @PasswordHash, @Role, @CreatedAt)";
+        return db.ExecuteAsync(sql, new { Email = email, PasswordHash = passwordHash, Role = role, CreatedAt = createdAt });
+    }
 }

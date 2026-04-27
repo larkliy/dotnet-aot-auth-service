@@ -1,9 +1,15 @@
 ﻿using AuthService.Dtos;
+using AuthService.Dtos.Admin;
 using AuthService.Models;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json.Serialization;
 
 namespace AuthService;
+
+
+[JsonSerializable(typeof(AdminCreateUserRequest))]
+[JsonSerializable(typeof(AdminUpdateUserRequest))]
+[JsonSerializable(typeof(IEnumerable<User>))]
 
 [JsonSerializable(typeof(RefreshTokenResponse))]
 [JsonSerializable(typeof(RefreshTokenRequest))]

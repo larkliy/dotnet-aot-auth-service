@@ -4,9 +4,12 @@ using AuthService.Options;
 using AuthService.Repositories;
 using AuthService.Services;
 using Dapper;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using System.Data;
+using System.Text;
 
 #if DEBUG
 using Scalar.AspNetCore;
@@ -46,6 +49,25 @@ builder.Services.AddSingleton<IJwtService, JwtService>();
 builder.Services.ConfigureHttpJsonOptions(options
     => options.SerializerOptions.TypeInfoResolverChain.Insert(0, SerializationContext.Default));
 
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key is missing");
+
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+        };
+    });
+
+builder.Services.AddAuthorization();
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
@@ -63,5 +85,9 @@ if (app.Environment.IsDevelopment())
 #endif
 
 app.MapAuthEndpoints();
+app.MapAdminEndpoints();
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.Run();
