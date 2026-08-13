@@ -1,6 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using AuthService.Common;
+using AuthService.Common.Exceptions;
 using AuthService.Dtos;
 using AuthService.Models;
 using AuthService.Options;
@@ -25,21 +25,21 @@ public sealed class AuthenticationService(
         return repository.CreateUserAsync(email, passwordHasher.Hash(password), DefaultRole, cancellationToken);
     }
 
-    public async Task<Result<AuthResponse>> LoginAsync(string email, string password, CancellationToken cancellationToken)
+    public async Task<AuthResponse> LoginAsync(string email, string password, CancellationToken cancellationToken)
     {
         var user = await repository.GetByEmailAsync(email, cancellationToken);
 
         if (user is null || !passwordHasher.Verify(password, user.PasswordHash))
-            return Result<AuthResponse>.Fail(ServiceFailure.InvalidCredentials);
+            throw new InvalidCredentialsException();
 
         return await IssueTokensAsync(user, cancellationToken);
     }
 
-    public async Task<Result<AuthResponse>> RefreshAsync(string accessToken, string refreshToken, CancellationToken cancellationToken)
+    public async Task<AuthResponse> RefreshAsync(string accessToken, string refreshToken, CancellationToken cancellationToken)
     {
         var principal = jwtService.GetPrincipalFromExpiredToken(accessToken);
         if (principal is null)
-            return Result<AuthResponse>.Fail(ServiceFailure.InvalidCredentials);
+            throw new InvalidCredentialsException();
 
         var email = principal.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Sub)?.Value
                  ?? principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
@@ -47,12 +47,12 @@ public sealed class AuthenticationService(
         var user = email is null ? null : await repository.GetByEmailAsync(email, cancellationToken);
 
         if (user is null || user.RefreshToken != refreshToken || user.RefreshTokenExpiryTime <= DateTime.UtcNow)
-            return Result<AuthResponse>.Fail(ServiceFailure.InvalidCredentials);
+            throw new InvalidCredentialsException();
 
         return await IssueTokensAsync(user, cancellationToken);
     }
 
-    private async Task<Result<AuthResponse>> IssueTokensAsync(User user, CancellationToken cancellationToken)
+    private async Task<AuthResponse> IssueTokensAsync(User user, CancellationToken cancellationToken)
     {
         var accessToken = jwtService.GenerateToken(user);
         var refreshToken = jwtService.GenerateRefreshToken();
@@ -63,6 +63,6 @@ public sealed class AuthenticationService(
             DateTime.UtcNow + _refreshTokenLifetime,
             cancellationToken);
 
-        return Result<AuthResponse>.Success(new AuthResponse(accessToken, refreshToken));
+        return new AuthResponse(accessToken, refreshToken);
     }
 }

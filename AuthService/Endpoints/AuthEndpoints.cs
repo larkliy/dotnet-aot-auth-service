@@ -28,8 +28,8 @@ public static class AuthEndpoints
         IAuthenticationService authService,
         CancellationToken cancellationToken)
     {
-        var result = await authService.LoginAsync(request.Email, request.Password, cancellationToken);
-        return result.IsSuccess ? Results.Ok(result.Value) : Results.Unauthorized();
+        var response = await authService.LoginAsync(request.Email, request.Password, cancellationToken);
+        return Results.Ok(response);
     }
 
     private static async Task<IResult> RefreshAsync(
@@ -37,7 +37,7 @@ public static class AuthEndpoints
         IAuthenticationService authService,
         CancellationToken cancellationToken)
     {
-        var result = await authService.RefreshAsync(request.AccessToken, request.RefreshToken, cancellationToken);
-        return result.IsSuccess ? Results.Ok(result.Value) : Results.Unauthorized();
+        var response = await authService.RefreshAsync(request.AccessToken, request.RefreshToken, cancellationToken);
+        return Results.Ok(response);
     }
 }

@@ -29,8 +29,8 @@ public static class AdminEndpoints
         IAdminUserService adminService,
         CancellationToken cancellationToken)
     {
-        var result = await adminService.GetByIdAsync(id, cancellationToken);
-        return result.IsSuccess ? Results.Ok(result.Value) : Results.NotFound();
+        var user = await adminService.GetByIdAsync(id, cancellationToken);
+        return Results.Ok(user);
     }
 
     private static async Task<IResult> CreateUserAsync(
@@ -48,8 +48,8 @@ public static class AdminEndpoints
         IAdminUserService adminService,
         CancellationToken cancellationToken)
     {
-        var result = await adminService.UpdateAsync(id, request, cancellationToken);
-        return result.IsSuccess ? Results.NoContent() : Results.NotFound();
+        await adminService.UpdateAsync(id, request, cancellationToken);
+        return Results.NoContent();
     }
 
     private static async Task<IResult> DeleteUserAsync(
@@ -57,7 +57,7 @@ public static class AdminEndpoints
         IAdminUserService adminService,
         CancellationToken cancellationToken)
     {
-        var result = await adminService.DeleteAsync(id, cancellationToken);
-        return result.IsSuccess ? Results.NoContent() : Results.NotFound();
+        await adminService.DeleteAsync(id, cancellationToken);
+        return Results.NoContent();
     }
 }

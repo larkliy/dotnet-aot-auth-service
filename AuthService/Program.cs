@@ -55,6 +55,7 @@ builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 builder.Services.AddScoped<IAdminUserService, AdminUserService>();
 
 builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<DomainExceptionHandler>();
 builder.Services.AddExceptionHandler<SqliteUniqueViolationExceptionHandler>();
 
 builder.Services.AddValidation();

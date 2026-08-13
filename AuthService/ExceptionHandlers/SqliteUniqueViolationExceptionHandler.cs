@@ -1,3 +1,4 @@
+using AuthService;
 using AuthService.Repositories;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
@@ -20,7 +21,7 @@ public sealed class SqliteUniqueViolationExceptionHandler : IExceptionHandler
         };
 
         httpContext.Response.StatusCode = StatusCodes.Status409Conflict;
-        await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
+        await httpContext.Response.WriteAsJsonAsync(problemDetails, SerializationContext.Default.ProblemDetails, cancellationToken: cancellationToken);
         return true;
     }
 }

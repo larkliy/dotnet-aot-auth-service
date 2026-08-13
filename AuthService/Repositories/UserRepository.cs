@@ -30,7 +30,6 @@ public class UserRepository(IDbConnection db) : IAuthRepository, IUserRepository
 
     public async Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
     {
-        _ = cancellationToken;
         var sql = "SELECT Id, Email, PasswordHash, Role, CreatedAt, RefreshToken, RefreshTokenExpiryTime FROM Users WHERE Email = @Email LIMIT 1";
         return await db.QueryFirstOrDefaultAsync<User>(sql, new { Email = email });
     }
