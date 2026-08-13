@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using AuthService.Models;
 using System.IdentityModel.Tokens.Jwt;
 using AuthService.Options;
+using AuthService.Services.Abstractions;
 using Microsoft.Extensions.Options;
 
 namespace AuthService.Services;
@@ -48,16 +49,7 @@ public class JwtService(IOptions<JwtOptions> options) : IJwtService
 
     public ClaimsPrincipal? GetPrincipalFromExpiredToken(string token)
     {
-        var tokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateAudience = true,
-            ValidateIssuer = true,
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.Key)),
-            ValidateLifetime = false,
-            ValidIssuer = _jwtOptions.Issuer,
-            ValidAudience = _jwtOptions.Audience
-        };
+        var tokenValidationParameters = JwtValidationParametersFactory.Create(_jwtOptions, validateLifetime: false);
 
         var tokenHandler = new JwtSecurityTokenHandler();
 

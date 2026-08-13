@@ -1,7 +1,7 @@
 ﻿using AuthService.Models;
 using System.Security.Claims;
 
-namespace AuthService.Services;
+namespace AuthService.Services.Abstractions;
 
 public interface IJwtService
 {

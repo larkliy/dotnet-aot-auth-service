@@ -14,4 +14,7 @@ public class JwtOptions
 
     [Required]
     public string Issuer { get; set; } = string.Empty;
+
+    [Range(1, 365)]
+    public int RefreshTokenExpiryDays { get; set; } = 7;
 }

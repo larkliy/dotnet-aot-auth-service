@@ -1,15 +1,16 @@
 using AuthService;
 using AuthService.Endpoints;
+using AuthService.ExceptionHandlers;
 using AuthService.Options;
 using AuthService.Repositories;
+using AuthService.Repositories.Abstractions;
 using AuthService.Services;
+using AuthService.Services.Abstractions;
 using Dapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
 using System.Data;
-using System.Text;
 
 #if DEBUG
 using Scalar.AspNetCore;
@@ -28,15 +29,38 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 
 builder.Services.AddScoped<IDbConnection>(_ =>
 {
+    var connBuilder = new SqliteConnectionStringBuilder(connectionString);
+    var dbPath = connBuilder.DataSource;
+
+    if (!string.IsNullOrEmpty(dbPath) && dbPath != ":memory:")
+    {
+        var directory = Path.GetDirectoryName(dbPath);
+        if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+    }
+
     var conn = new SqliteConnection(connectionString);
     conn.Open();
     return conn;
 });
 
+builder.Services.AddScoped<IAuthRepository, UserRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IDatabaseInitializer, SqliteDatabaseInitializer>();
 
+builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
+builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+builder.Services.AddScoped<IAdminUserService, AdminUserService>();
+
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<SqliteUniqueViolationExceptionHandler>();
+
 builder.Services.AddValidation();
+
+var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
+                 ?? throw new InvalidOperationException("JWT configuration section is missing");
 
 builder.Services.AddOptions<JwtOptions>()
     .BindConfiguration(JwtOptions.SectionName)
@@ -52,23 +76,14 @@ builder.Services.ConfigureHttpJsonOptions(options
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key is missing");
-
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = builder.Configuration["Jwt:Issuer"],
-            ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
-        };
+        options.TokenValidationParameters = JwtValidationParametersFactory.Create(jwtOptions);
     });
 
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
+
+app.UseExceptionHandler();
 
 using (var scope = app.Services.CreateScope())
 {
